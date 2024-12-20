@@ -1,0 +1,18 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: image-processor
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - image: python:3.9-slim
+          env:
+            - name: MINIO_URL
+              value: http://minio.default.svc.cluster.local
+            - name: MINIO_ACCESS_KEY
+              value: minioadmin
+            - name: MINIO_SECRET_KEY
+              value: minioadmin
+          command: ["python3", "-m", "http.server", "8080"]
