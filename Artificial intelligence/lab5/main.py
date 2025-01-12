@@ -1,103 +1,111 @@
-# Import Libraries
+# Data Preprocessing
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
+import matplotlib.pyplot as plt
+import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
-from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
+from sklearn.model_selection import GridSearchCV
 
-# Step 1: Data Preprocessing
-# Load the dataset
+# Loading and Exploring the Dataset
 data = pd.read_csv('synthetic_traffic_data.csv')
 print(data.head())
 print(data.info())
 print(data.describe())
+
+# Checking for missing data
 print(data.isnull().sum())
 
 # Time-Series Data Handling
 data['timestamp'] = pd.to_datetime(data['timestamp'])
 data = data.sort_values('timestamp')
 
-# Extract Time-Based Features
+# Extracting time-based features
 data['hour'] = data['timestamp'].dt.hour
-data['day_of_week'] = data['timestamp'].dt.dayofweek
+data['day_of_week'] = data['timestamp'].dt.dayofweek  # Monday=0, Sunday=6
 data['is_weekend'] = (data['day_of_week'] >= 5).astype(int)
 
-# Step 2: Feature Engineering
-# Time-Based Features
+# Feature Engineering
+# Time-based Features
 data['is_rush_hour'] = data['hour'].apply(lambda x: 1 if x in [7, 8, 17, 18] else 0)
 
 # Lag Features
-for lag in range(1, 25):
+for lag in range(1, 25):  # Last 24 hours
     data[f'lag_{lag}'] = data['traffic_flow'].shift(lag)
-data.dropna(inplace=True)
+
+data.dropna(inplace=True)  # Drop rows with NaN values from lag features
 
 # Normalization/Standardization
 scaler = MinMaxScaler()
-feature_columns = ['hour', 'is_weekend', 'is_rush_hour'] + [f'lag_{i}' for i in range(1, 25)]
+feature_columns = ['hour', 'is_weekend', 'is_rush_hour', 'temperature', 'humidity'] + [f'lag_{i}' for i in range(1, 25)]
 data[feature_columns] = scaler.fit_transform(data[feature_columns])
 
-# Step 3: Data Splitting
+# Data Splitting
 X = data[feature_columns]
-y = data['traffic_flow']
+y = data['traffic_flow']  # Target variable
 
 # Train-Test Split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=42)  # Split into training and temporary set
+X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
 
-# Validation Set
-X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+# Model Building
+# Neural Network Architecture
+model = Sequential()
+model.add(Dense(64, activation='relu', input_dim=X_train.shape[1]))
+model.add(Dense(32, activation='relu'))
+model.add(Dense(1))  # Regression output
 
-# Step 4: Model Building Function
-def create_model():
-    # Neural Network Architecture
-    model = Sequential()
-    model.add(Dense(64, activation='relu', input_dim=X_train.shape[1]))
-    model.add(Dense(32, activation='relu'))
-    model.add(Dense(1))  # Output layer for regression
+# Model Compilation
+model.compile(loss='mean_squared_error', optimizer='adam')
 
-    # Model Compilation
-    model.compile(loss='mean_squared_error', optimizer='adam')
-    return model
+# Model Training and Evaluation
+# Training the Model
+history = model.fit(X_train, y_train, validation_split=0.2, epochs=50, batch_size=32)
 
-# Wrap the model using KerasRegressor
-model = KerasRegressor(build_fn=create_model, epochs=50, batch_size=32, verbose=0)
-
-# Step 5: Model Training and Evaluation
-# Train the Model
-history = model.fit(X_train, y_train, validation_data=(X_val, y_val))
-
-# Evaluate Model Performance
+# Evaluation
 y_pred = model.predict(X_test)
+
+# Calculating RMSE
 rmse = np.sqrt(np.mean((y_pred.flatten() - y_test) ** 2))
 print(f'RMSE: {rmse}')
 
-# Step 6: Prediction for Future Traffic
-# Create future feature values with correct dimensions
-future_features = np.array([[14, 1, 0] + [0] * 24])  # Example: hour=14, weekend=1, rush_hour=0, followed by 24 lag features
+# Prediction
+# Training the Model
+history = model.fit(X_train, y_train, validation_data=(X_val, y_val), epochs=50, batch_size=32)  
 
-# Ensure the features are scaled the same way as training data
-future_features_scaled = scaler.transform(future_features)
+# Prediction
+y_future_pred = model.predict(X_test)  
 
-# Make the prediction
-future_prediction = model.predict(future_features_scaled)
-print(f'Future Traffic Prediction: {future_prediction}')
+# #step 6
+# # function to create the model (required for GridSearchCV)
+# def create_model(learning_rate=0.01):
+#     model = Sequential()
+#     model.add(Dense(64, activation='relu', input_dim=X_train.shape[1]))
+#     model.add(Dense(32, activation='relu'))
+#     model.add(Dense(1))  # Regression output
+#     model.compile(loss='mean_squared_error', optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
+#     return model
 
-# Step 7: Model Tuning and Optimization
-# Example hyperparameter grid for tuning (optional)
-param_grid = {
-    'batch_size': [16, 32],
-    'epochs': [50, 100]
-}
+# # parameter grid
+# param_grid = {
+#     'learning_rate': [0.001, 0.01, 0.1],
+#     'batch_size': [16, 32, 64],
+#     'epochs': [50, 100]
+# }
 
-# Grid search implementation would go here (optional)
+# # Using KerasClassifier for GridSearchCV
+# from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
+# model = KerasRegressor(build_fn=create_model, verbose=0)
 
-# Cross-Validation
-scores = cross_val_score(model, X, y, cv=5)
-print(f'Cross-Validation Scores: {scores}')
+# grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=-1, cv=3)  # 3-fold cross-validation
+# grid_result = grid.fit(X_train, y_train)
 
-# Step 8: Visualization
+# # Print best parameters
+# print(f'Best: {grid_result.best_score_} using {grid_result.best_params_}')
+
+# Visualization
 # Visualize Traffic Predictions
 plt.figure(figsize=(12, 6))
 plt.plot(y_test.values, label='Actual Traffic Flow')
@@ -110,8 +118,20 @@ plt.show()
 
 # Weather vs. Traffic Flow Visualization
 plt.figure(figsize=(10, 6))
+
+# Scatter plot for Temperature vs. Traffic Flow
+plt.subplot(1, 2, 1)
 plt.scatter(data['temperature'], data['traffic_flow'], alpha=0.5)
 plt.title('Temperature vs. Traffic Flow')
 plt.xlabel('Temperature')
 plt.ylabel('Traffic Flow')
+
+# Scatter plot for Humidity vs. Traffic Flow
+plt.subplot(1, 2, 2)
+plt.scatter(data['humidity'], data['traffic_flow'], alpha=0.5, color='orange')
+plt.title('Humidity vs. Traffic Flow')
+plt.xlabel('Humidity')
+plt.ylabel('Traffic Flow')
+
+plt.tight_layout()
 plt.show()
