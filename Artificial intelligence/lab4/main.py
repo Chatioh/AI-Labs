@@ -8,6 +8,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
 import hdbscan
 import os
+import joblib
 
 # Loading and Exploring the Dataset
 def load_images_from_subfolders(folder, total_images_to_process=100):
@@ -119,3 +120,15 @@ for idx, rep_img in enumerate(representative_images):
     plt.imshow(cv2.cvtColor(rep_img, cv2.COLOR_BGR2RGB))
     plt.axis('off')
 plt.show()
+
+# Combine models into a single dictionary
+model_pipeline = {
+    "hdbscan_model": clusterer,  # HDBSCAN clustering model
+    "pca_model": pca,           # PCA for dimensionality reduction
+    "scaler": scaler            # Scaler for standardization
+}
+
+# Save the entire pipeline to a single file
+joblib.dump(model_pipeline, "clustering_pipeline.pkl")
+
+print("All models exported successfully into clustering_pipeline.pkl!")

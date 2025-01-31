@@ -1,0 +1,11 @@
+2025-01-30 03:59:05,737 - INFO - Trained pipeline loaded successfully.
+2025-01-30 04:02:11,809 - INFO - Incoming prediction request
+2025-01-30 04:02:11,809 - ERROR - Error during prediction: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2025-01-30 04:02:17,195 - INFO - Incoming prediction request
+2025-01-30 04:02:17,196 - ERROR - Error during prediction: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2025-01-30 04:02:17,925 - INFO - Incoming prediction request
+2025-01-30 04:02:17,927 - ERROR - Error during prediction: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2025-01-30 04:02:37,690 - INFO - Incoming prediction request
+2025-01-30 04:02:37,690 - ERROR - Error during prediction: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+2025-01-30 04:02:38,505 - INFO - Incoming prediction request
+2025-01-30 04:02:38,508 - ERROR - Error during prediction: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
