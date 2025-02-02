@@ -3,8 +3,8 @@ from PIL import Image
 import numpy as np
 import pickle
 import os
-import logging
 import time
+import logging
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -19,7 +19,7 @@ logging.basicConfig(
     ]
 )
 
-# Load the trained model (update the path to your .pkl file)
+# Load the trained model 
 MODEL_PATH = 'clustering_pipeline.pkl'
 
 try:
